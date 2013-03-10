@@ -2,7 +2,8 @@
 
 namespace mindplay\jsonfreeze;
 
-use \ReflectionClass;
+use ReflectionClass;
+use Exception;
 
 /**
  * @author Rasmus Schultz <rasmus@mindplay.dk>
