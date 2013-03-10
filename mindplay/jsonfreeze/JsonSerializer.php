@@ -62,7 +62,7 @@ class JsonSerializer
   public function serialize($object)
   {
     if (!is_object($object)) {
-      throw new Exception("argument is not an object");
+      throw new \Exception("argument is not an object");
     }
     
     return $this->_serializeObject($object, 0);
