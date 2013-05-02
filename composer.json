@@ -1,6 +1,5 @@
 {
   "name": "mindplay/jsonfreeze",
-  "version": "1.0.0-dev",
   "type": "library",
   "description": "JSON Serialization library",
   "license": "LGPL-3.0+",
@@ -16,7 +15,4 @@
           "mindplay\\jsonfreeze": ""
       }
   },
-  "extra": {
-    "branch-alias": { "dev-master": "1.0.x-dev" }
-  }
 }
