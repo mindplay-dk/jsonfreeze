@@ -28,29 +28,29 @@ class JsonSerializer
   const HASH = '#hash';
   
   /**
-   * @var string One level of indentation - defaults to two spaces.
+   * @var string One level of indentation
    */
-  public $indentation = '  ';
+  public $indentation = '';
   
   /**
-   * @var string Newline character(s) - defaults to newline.
+   * @var string Newline character(s)
    */
-  public $newline = "\n";
+  public $newline = '';
   
   /**
-   * @var string Padding character(s) after ":" in JSON objects - defaults to one space.
+   * @var string Padding character(s) after ":" in JSON objects
    */
-  public $padding = ' ';
+  public $padding = '';
   
   /**
-   * @param bool $pretty Whether or not to enable "pretty" JSON formatting.
+   * @param bool $pretty true to enable "pretty" JSON formatting.
    */
   public function __construct($pretty = true)
   {
-    if (!$pretty) {
-      $this->indentation = '';
-      $this->newline = '';
-      $this->padding = '';
+    if ($pretty) {
+      $this->indentation = '  ';
+      $this->newline = "\n";
+      $this->padding = ' ';
     }
   }
   
@@ -58,6 +58,7 @@ class JsonSerializer
    * Serialize a given object-graph to a JSON representation.
    *
    * @param object $object The root of the object-graph to be serialized.
+   * @return string JSON serialized object representation
    */
   public function serialize($object)
   {
