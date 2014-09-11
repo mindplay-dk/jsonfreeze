@@ -255,8 +255,6 @@ class JsonSerializer
             }
         }
 
-        // TODO invoke the magic __wakeup() method
-
         return $object;
     }
 
@@ -315,8 +313,6 @@ class JsonSerializer
             $class = new ReflectionClass($type);
 
             $props = array();
-
-            // TODO add support for the __sleep() magic method
 
             foreach ($class->getProperties() as $prop) {
                 $prop->setAccessible(true);
