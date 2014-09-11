@@ -3,7 +3,8 @@
 namespace mindplay\jsonfreeze;
 
 use ReflectionClass;
-use Exception;
+use ReflectionProperty;
+use RuntimeException;
 
 /**
  * @author Rasmus Schultz <rasmus@mindplay.dk>
@@ -24,21 +25,33 @@ use Exception;
  */
 class JsonSerializer
 {
+    /**
+     * @var (ReflectionProperty[])[] Internal cache for class-reflections
+     */
+    static $_reflections = array();
+
+    /**
+     * @type string hash token used to identify PHP classes
+     */
     const TYPE = '#type';
+
+    /**
+     * @type string hash token used to identift PHP hashes (arrays with keys)
+     */
     const HASH = '#hash';
 
     /**
-     * @var string One level of indentation
+     * @var string one level of indentation
      */
     public $indentation = '';
 
     /**
-     * @var string Newline character(s)
+     * @var string newline character(s)
      */
     public $newline = '';
 
     /**
-     * @var string Padding character(s) after ":" in JSON objects
+     * @var string padding character(s) after ":" in JSON objects
      */
     public $padding = '';
 
@@ -58,12 +71,15 @@ class JsonSerializer
      * Serialize a given object-graph to a JSON representation.
      *
      * @param object $object The root of the object-graph to be serialized.
+     *
      * @return string JSON serialized object representation
+     *
+     * @throws RuntimeException if the given argument is not an object
      */
     public function serialize($object)
     {
         if (!is_object($object)) {
-            throw new Exception("argument is not an object");
+            throw new RuntimeException("argument is not an object");
         }
 
         return $this->_serializeObject($object, 0);
@@ -71,6 +87,8 @@ class JsonSerializer
 
     /**
      * Unserialize an object-graph from a JSON string representation.
+     *
+     * @param string $string JSON serialized object representation
      *
      * @return object The root of the unserialized object-graph.
      */
@@ -83,28 +101,40 @@ class JsonSerializer
 
     /**
      * Serializes an individual object/array/hash/value, returning a JSON string representation
+     *
+     * @param mixed $value the value to serialize
+     * @param int $indent indentation level
+     *
+     * @return string JSON serialized value
      */
     protected function _serialize($value, $indent = 0)
     {
         if (is_object($value)) {
             return $this->_serializeObject($value, $indent);
-        } else if (is_array($value)) {
-            if (array_keys($value) === array_keys(array_values($value))) {
-                return $this->_serializeArray($value, $indent);
-            } else {
-                return $this->_serializeHash($value, $indent);
-            }
         } else {
-            if (is_scalar($value)) {
-                return json_encode($value);
+            if (is_array($value)) {
+                if (array_keys($value) === array_keys(array_values($value))) {
+                    return $this->_serializeArray($value, $indent);
+                } else {
+                    return $this->_serializeHash($value, $indent);
+                }
             } else {
-                return 'null';
+                if (is_scalar($value)) {
+                    return json_encode($value);
+                } else {
+                    return 'null';
+                }
             }
         }
     }
 
     /**
      * Serializes a complete object with aggregates, returning a JSON string representation.
+     *
+     * @param object $object object
+     * @param int $indent indentation level
+     *
+     * @return string JSON object representation
      */
     protected function _serializeObject($object, $indent)
     {
@@ -115,10 +145,12 @@ class JsonSerializer
         $string = '{' . $whitespace . '"' . self::TYPE . '":' . $this->padding . json_encode($type);
 
         foreach ($this->_getClassProperties($type) as $name => $prop) {
-            $string .= ',' . $whitespace . json_encode($name) . ':' . $this->padding . $this->_serialize(
-                    $prop->getValue($object),
-                    $indent + 1
-                );
+            $string .= ','
+                . $whitespace
+                . json_encode($name)
+                . ':'
+                . $this->padding
+                . $this->_serialize($prop->getValue($object), $indent + 1);
         }
 
         $string .= $this->newline . str_repeat($this->indentation, $indent) . '}';
@@ -128,6 +160,11 @@ class JsonSerializer
 
     /**
      * Serializes a "strict" array (base-0 integer keys) returning a JSON string representation.
+     *
+     * @param array $array array
+     * @param int $indent indentation level
+     *
+     * @return string JSON array representation
      */
     protected function _serializeArray($array, $indent)
     {
@@ -146,6 +183,11 @@ class JsonSerializer
 
     /**
      * Serializes a "wild" array (e.g. a "hash" array with mixed keys) returning a JSON string representation.
+     *
+     * @param array $hash hash array
+     * @param int $indent indentation level
+     *
+     * @return string JSON hash representation
      */
     protected function _serializeHash($hash, $indent)
     {
@@ -154,10 +196,12 @@ class JsonSerializer
         $string = '{' . $whitespace . '"' . self::TYPE . '":' . $this->padding . '"' . self::HASH . '"';
 
         foreach ($hash as $key => $item) {
-            $string .= ',' . $whitespace . json_encode($key) . ':' . $this->padding . $this->_serialize(
-                    $item,
-                    $indent + 1
-                );
+            $string .= ','
+                . $whitespace
+                . json_encode($key)
+                . ':'
+                . $this->padding
+                . $this->_serialize($item, $indent + 1);
         }
 
         $string .= $this->newline . str_repeat($this->indentation, $indent) . '}';
@@ -167,11 +211,16 @@ class JsonSerializer
 
     /**
      * Unserialize an individual object/array/hash/value from a hash of properties.
+     *
+     * @param array $data hashed value representation
+     *
+     * @return mixed unserialized value
      */
     protected function _unserialize($data)
     {
-        if (!is_array($data))
+        if (!is_array($data)) {
             return $data; // scalar value is fully unserialized
+        }
 
         if (array_key_exists(self::TYPE, $data)) {
             if ($data[self::TYPE] === self::HASH) {
@@ -186,6 +235,10 @@ class JsonSerializer
 
     /**
      * Unserialize an individual object from a hash of properties.
+     *
+     * @param array $data hash of object properties
+     *
+     * @return object unserialized object
      */
     protected function _unserializeObject($data)
     {
@@ -209,12 +262,18 @@ class JsonSerializer
 
     /**
      * Unserialize a "strict" array (base-0 integer keys) from a hash.
+     *
+     * @param array $data array
+     *
+     * @return array unserialized array
      */
     protected function _unserializeArray($data)
     {
         $array = array();
 
-        for ($i = 0; $i < count($data); $i++) {
+        $length = count($data);
+
+        for ($i = 0; $i < $length; $i++) {
             $array[] = $this->_unserialize($data[$i]);
         }
 
@@ -223,14 +282,19 @@ class JsonSerializer
 
     /**
      * Unserialize a "wild" array. (e.g. a "hash" array with mixed keys)
+     *
+     * @param array $data hash array
+     *
+     * @return array hash array
      */
     protected function _unserializeHash($data)
     {
         $hash = array();
 
         foreach ($data as $name => $value) {
-            if ($name === self::TYPE)
+            if ($name === self::TYPE) {
                 continue;
+            }
 
             $hash[$name] = $this->_unserialize($value);
         }
@@ -239,12 +303,11 @@ class JsonSerializer
     }
 
     /**
-     * Internal cache for class-reflections
-     */
-    static $_reflections = array();
-
-    /**
      * Obtain a (cached) array of property-reflections, with all properties made accessible.
+     *
+     * @param string $type fully-qualified class name
+     *
+     * @return ReflectionProperty[] map where property-name => accessible ReflectionProperty instance
      */
     protected function _getClassProperties($type)
     {
