@@ -1,6 +1,6 @@
 <?php
 
-require '../mindplay/jsonfreeze/JsonSerializer.php';
+require dirname(__DIR__) . '/mindplay/jsonfreeze/JsonSerializer.php';
 
 use mindplay\jsonfreeze\JsonSerializer;
 
