@@ -95,6 +95,8 @@ test(
     }
 );
 
+exit(status());
+
 // https://gist.github.com/mindplay-dk/4260582
 
 /**
