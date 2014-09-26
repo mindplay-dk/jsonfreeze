@@ -44,9 +44,14 @@ class OrderLine
     {
         $this->item = $item;
         $this->amount = $amount;
+        $this->data = 456;
     }
 
+    /** @var array this is here to assert omission of static properties */
     public static $cache = array();
+
+    /** @var int this is here to assert omission or inclusion of private properties */
+    private $data = 123;
 
     public $item;
     public $amount;
@@ -97,7 +102,24 @@ test(
 
         $serial = json_decode($data, true);
 
-        ok(!isset($serial['lines'][0]['cache']), 'static members should be omitted');
+        ok(!isset($serial['lines'][0]['cache']), 'static properties should always be omitted');
+
+        eq($serial['lines'][0]['data'], 456, 'private properties should be included by default');
+
+        $prop = new ReflectionProperty($output->lines[0], 'data');
+        $prop->setAccessible(true);
+
+        $json->skipPrivateProperties();
+
+        $data = $json->serialize($input);
+
+        $output = $json->unserialize($data);
+
+        $serial = json_decode($data, true);
+
+        ok(!isset($serial['lines'][0]['data']), 'private properties should be omitted after skipPrivateProperties()');
+
+        eq($prop->getValue($output->lines[0]), 123, 'private properties should initialize to their default value');
     }
 );
 

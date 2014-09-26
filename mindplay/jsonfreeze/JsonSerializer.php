@@ -56,6 +56,14 @@ class JsonSerializer
     public $padding = '';
 
     /**
+     * @var bool true, if private properties should be skipped
+     *
+     * @see skipPrivateProperties()
+     * @see _getClassProperties()
+     */
+    private $_skip_private = false;
+
+    /**
      * @param bool $pretty true to enable "pretty" JSON formatting.
      */
     public function __construct($pretty = true)
@@ -97,6 +105,23 @@ class JsonSerializer
         $data = json_decode($string, true);
 
         return $this->_unserialize($data);
+    }
+
+    /**
+     * Enable (or disable) serialization of private properties.
+     *
+     * By default, private properties are serialized - be aware that skipping private
+     * properties may require some careful handling of those properties in your models;
+     * in particular, a private property initialized during __construct() will not get
+     * initialized when you unserialize() the object.
+     */
+    public function skipPrivateProperties($skip = true)
+    {
+        if ($this->_skip_private !== $skip) {
+            $this->_skip_private = $skip;
+
+            self::$_reflections = array();
+        }
     }
 
     /**
@@ -316,10 +341,15 @@ class JsonSerializer
 
             foreach ($class->getProperties() as $prop) {
                 if ($prop->isStatic()) {
-                    continue; // omit static member
+                    continue; // omit static property
+                }
+
+                if ($this->_skip_private && $prop->isPrivate()) {
+                    continue; // skip private property
                 }
 
                 $prop->setAccessible(true);
+
                 $props[$prop->getName()] = $prop;
             }
 
