@@ -315,6 +315,10 @@ class JsonSerializer
             $props = array();
 
             foreach ($class->getProperties() as $prop) {
+                if ($prop->isStatic()) {
+                    continue; // omit static member
+                }
+
                 $prop->setAccessible(true);
                 $props[$prop->getName()] = $prop;
             }

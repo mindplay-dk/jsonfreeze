@@ -46,6 +46,8 @@ class OrderLine
         $this->amount = $amount;
     }
 
+    public static $cache = array();
+
     public $item;
     public $amount;
     public $options = array();
@@ -92,6 +94,10 @@ test(
 
         eq($output->lines[0]->amount, $input->lines[0]->amount, 'nested value');
         eq($output->lines[1]->options, $input->lines[1]->options, 'nested array');
+
+        $serial = json_decode($data, true);
+
+        ok(!isset($serial['lines'][0]['cache']), 'static members should be omitted');
     }
 );
 
