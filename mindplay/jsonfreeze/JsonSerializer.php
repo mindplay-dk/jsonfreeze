@@ -5,6 +5,7 @@ namespace mindplay\jsonfreeze;
 use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 
 /**
  * @author Rasmus Schultz <rasmus@mindplay.dk>
@@ -36,9 +37,14 @@ class JsonSerializer
     const TYPE = '#type';
 
     /**
-     * @type string hash token used to identift PHP hashes (arrays with keys)
+     * @type string hash token previously used to identify PHP hashes (arrays with keys)
      */
     const HASH = '#hash';
+
+    /**
+     * @type string standard class name
+     */
+    const STD_CLASS = 'stdClass';
 
     /**
      * @var string one level of indentation
@@ -76,29 +82,23 @@ class JsonSerializer
     }
 
     /**
-     * Serialize a given object-graph to a JSON representation.
+     * Serialize a given PHP value/array/object-graph to a JSON representation.
      *
-     * @param object $object The root of the object-graph to be serialized.
+     * @param mixed $value The value, array, or object-graph to be serialized.
      *
-     * @return string JSON serialized object representation
-     *
-     * @throws RuntimeException if the given argument is not an object
+     * @return string JSON serialized representation
      */
-    public function serialize($object)
+    public function serialize($value)
     {
-        if (!is_object($object)) {
-            throw new RuntimeException("argument is not an object");
-        }
-
-        return $this->_serializeObject($object, 0);
+        return $this->_serialize($value, 0);
     }
 
     /**
-     * Unserialize an object-graph from a JSON string representation.
+     * Unserialize a value/array/object-graph from a JSON string representation.
      *
-     * @param string $string JSON serialized object representation
+     * @param string $string JSON serialized value/array/object representation
      *
-     * @return object The root of the unserialized object-graph.
+     * @return mixed The unserialized value, array or object-graph.
      */
     public function unserialize($string)
     {
@@ -135,6 +135,10 @@ class JsonSerializer
     protected function _serialize($value, $indent = 0)
     {
         if (is_object($value)) {
+            if (get_class($value) === self::STD_CLASS) {
+                return $this->_serializeStdClass($value, $indent);
+            }
+
             return $this->_serializeObject($value, $indent);
         } else {
             if (is_array($value)) {
@@ -218,20 +222,41 @@ class JsonSerializer
     {
         $whitespace = $this->newline . str_repeat($this->indentation, $indent + 1);
 
-        $string = '{' . $whitespace . '"' . self::TYPE . '":' . $this->padding . '"' . self::HASH . '"';
+        $string = '{';
+
+        $comma = '';
 
         foreach ($hash as $key => $item) {
-            $string .= ','
+            $string .= $comma
                 . $whitespace
                 . json_encode($key)
                 . ':'
                 . $this->padding
                 . $this->_serialize($item, $indent + 1);
+
+            $comma = ',';
         }
 
         $string .= $this->newline . str_repeat($this->indentation, $indent) . '}';
 
         return $string;
+    }
+
+    /**
+     * Serializes a stdClass object returning a JSON string representation.
+     *
+     * @param stdClass $value stdClass object
+     * @param int $indent indentation level
+     *
+     * @return string JSON object representation
+     */
+    protected function _serializeStdClass($value, $indent)
+    {
+        $array = (array) $value;
+
+        $array[self::TYPE] = self::STD_CLASS;
+
+        return $this->_serializeHash($array, $indent);
     }
 
     /**
@@ -249,13 +274,15 @@ class JsonSerializer
 
         if (array_key_exists(self::TYPE, $data)) {
             if ($data[self::TYPE] === self::HASH) {
-                return $this->_unserializeHash($data);
-            } else {
-                return $this->_unserializeObject($data);
+                // remove legacy hash tag from JSON serialized with version 1.x
+                unset($data[self::TYPE]);
+                return $this->_unserializeArray($data);
             }
-        } else {
-            return $this->_unserializeArray($data);
+
+            return $this->_unserializeObject($data);
         }
+
+        return $this->_unserializeArray($data);
     }
 
     /**
@@ -268,6 +295,11 @@ class JsonSerializer
     protected function _unserializeObject($data)
     {
         $type = $data[self::TYPE];
+
+        if ($type === self::STD_CLASS) {
+            unset($data[self::TYPE]);
+            return (object) $this->_unserializeArray($data);
+        }
 
         $object = unserialize('O:' . strlen($type) . ':"' . $type . '":0:{}');
 
@@ -284,45 +316,21 @@ class JsonSerializer
     }
 
     /**
-     * Unserialize a "strict" array (base-0 integer keys) from a hash.
+     * Unserialize a hash/array.
      *
-     * @param array $data array
+     * @param array $data hash/array
      *
-     * @return array unserialized array
+     * @return array unserialized hash/array
      */
     protected function _unserializeArray($data)
     {
         $array = array();
 
-        $length = count($data);
-
-        for ($i = 0; $i < $length; $i++) {
-            $array[] = $this->_unserialize($data[$i]);
+        foreach ($data as $key => $value) {
+            $array[$key] = $this->_unserialize($value);
         }
 
         return $array;
-    }
-
-    /**
-     * Unserialize a "wild" array. (e.g. a "hash" array with mixed keys)
-     *
-     * @param array $data hash array
-     *
-     * @return array hash array
-     */
-    protected function _unserializeHash($data)
-    {
-        $hash = array();
-
-        foreach ($data as $name => $value) {
-            if ($name === self::TYPE) {
-                continue;
-            }
-
-            $hash[$name] = $this->_unserialize($value);
-        }
-
-        return $hash;
     }
 
     /**

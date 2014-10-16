@@ -123,6 +123,66 @@ test(
     }
 );
 
+test(
+    'Can serialize/unserialize standard objects',
+    function () {
+        $serializer = new JsonSerializer();
+
+        $input = (object) array('foo' => 'bar');
+
+        $json = $serializer->serialize($input);
+
+        $data = json_decode($json, true);
+
+        eq($data[JsonSerializer::TYPE], JsonSerializer::STD_CLASS, 'stdClass object gets tagged');
+
+        ok(isset($data['foo']), 'undefined property is preserved');
+
+        eq($data['foo'], 'bar', 'undefined property value is preserved');
+
+        $output = $serializer->unserialize($json);
+
+        ok(isset($output->foo), 'object property is restored');
+
+        eq($output->foo, $input->foo, 'property value is restored');
+    }
+);
+
+test(
+    'Can unserialize legacy array/hash values',
+    function () {
+        $array = array('foo','bar','baz');
+
+        $input = array(
+            'array' => $array,
+            'hash' => array(
+                JsonSerializer::TYPE => JsonSerializer::HASH,
+                'foo' => 1,
+                'bar' => 2,
+                'baz' => 3,
+            ),
+        );
+
+        $serializer = new JsonSerializer();
+
+        $output = $serializer->unserialize(json_encode($input));
+
+        eq($output['array'], $array, 'correctly unserializes a straight array');
+
+        ok(!isset($output['hash'][JsonSerializer::TYPE]), 'legacy hash tag detected and removed');
+
+        eq(
+            $output['hash'],
+            array(
+                'foo' => 1,
+                'bar' => 2,
+                'baz' => 3,
+            ),
+            'original hash correctly restored after hash tag removal'
+        );
+    }
+);
+
 exit(status());
 
 // https://gist.github.com/mindplay-dk/4260582
