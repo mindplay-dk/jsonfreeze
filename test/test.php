@@ -108,4 +108,58 @@ test(
     }
 );
 
+/**
+ * @param DateTime|DateTimeImmutable $value
+ * @param DateTime|DateTimeImmutable $expected
+ */
+function eq_dates($value, $expected) {
+    eq($value->getTimestamp(), $expected->getTimestamp());
+    eq($value->getTimezone()->getName(), $expected->getTimezone()->getName());
+}
+
+/**
+ * @param DateTime|DateTimeImmutable $date
+ */
+function check_date($date)
+{
+    $serializer = new JsonSerializer(false);
+
+    $serialized = $serializer->serialize($date);
+
+    eq_dates($date, $serializer->unserialize($serialized));
+}
+
+test(
+    'Can serialize/unserialize DateTime types',
+    function () {
+        $serializer = new JsonSerializer(false);
+
+        $date = new DateTime("1975-07-07 00:00:00", timezone_open("UTC"));
+
+        eq($serializer->serialize($date), '{"#type":"DateTime","datetime":"1975-07-07T00:00:00Z","timezone":"UTC"}');
+
+        check_date($date);
+
+        $date = new DateTime("1975-07-07 00:00:00", timezone_open("America/New_York"));
+
+        eq($serializer->serialize($date), '{"#type":"DateTime","datetime":"1975-07-07T04:00:00Z","timezone":"America\/New_York"}');
+
+        check_date($date);
+
+        if (class_exists("DateTimeImmutable")) {
+            $date = new DateTimeImmutable("1975-07-07 00:00:00", timezone_open("UTC"));
+
+            eq($serializer->serialize($date), '{"#type":"DateTimeImmutable","datetime":"1975-07-07T00:00:00Z","timezone":"UTC"}');
+
+            check_date($date);
+
+            $date = new DateTimeImmutable("1975-07-07 00:00:00", timezone_open("America/New_York"));
+
+            eq($serializer->serialize($date), '{"#type":"DateTimeImmutable","datetime":"1975-07-07T04:00:00Z","timezone":"America\/New_York"}');
+
+            check_date($date);
+        }
+    }
+);
+
 exit(run());

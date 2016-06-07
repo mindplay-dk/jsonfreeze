@@ -2,8 +2,12 @@
 
 namespace mindplay\jsonfreeze;
 
+use DateTime;
+use DateTimeImmutable;
+use DateTimeZone;
 use ReflectionClass;
 use ReflectionProperty;
+use RuntimeException;
 use stdClass;
 
 /**
@@ -17,22 +21,27 @@ use stdClass;
 class JsonSerializer
 {
     /**
+     * @var string ISO-8601 UTC date/time format
+     */
+    const DATETIME_FORMAT = "Y-m-d\TH:i:s\Z";
+
+    /**
      * @var (ReflectionProperty[])[] Internal cache for class-reflections
      */
     static $_reflections = array();
 
     /**
-     * @type string hash token used to identify PHP classes
+     * @var string hash token used to identify PHP classes
      */
     const TYPE = '#type';
 
     /**
-     * @type string hash token previously used to identify PHP hashes (arrays with keys)
+     * @var string hash token previously used to identify PHP hashes (arrays with keys)
      */
     const HASH = '#hash';
 
     /**
-     * @type string standard class name
+     * @var string standard class name
      */
     const STD_CLASS = 'stdClass';
 
@@ -60,6 +69,16 @@ class JsonSerializer
     private $skip_private = false;
 
     /**
+     * @var callable[] map where fully-qualified class-name => serialization function
+     */
+    private $serializers = array();
+
+    /**
+     * @var callable[] map where fully-qualified class-name => serialization function
+     */
+    private $unserializers = array();
+
+    /**
      * @param bool $pretty true to enable "pretty" JSON formatting.
      */
     public function __construct($pretty = true)
@@ -69,6 +88,18 @@ class JsonSerializer
             $this->newline = "\n";
             $this->padding = ' ';
         }
+
+        $this->defineSerialization(
+            'DateTime',
+            array($this, "_serializeDateTime"),
+            array($this, "_unserializeDateTime")
+        );
+
+        $this->defineSerialization(
+            'DateTimeImmutable',
+            array($this, "_serializeDateTime"),
+            array($this, "_unserializeDateTime")
+        );
     }
 
     /**
@@ -115,6 +146,19 @@ class JsonSerializer
     }
 
     /**
+     * Registers a pair of custom un/serialization functions for a given class
+     *
+     * @param string   $type        fully-qualified class-name
+     * @param callable $serialize   serialization function; takes an object and returns serialized data
+     * @param callable $unserialize unserialization function; takes serialized data and returns an object
+     */
+    public function defineSerialization($type, $serialize, $unserialize)
+    {
+        $this->serializers[$type] = $serialize;
+        $this->unserializers[$type] = $unserialize;
+    }
+
+    /**
      * Serializes an individual object/array/hash/value, returning a JSON string representation
      *
      * @param mixed $value  the value to serialize
@@ -158,6 +202,10 @@ class JsonSerializer
     protected function _serializeObject($object, $indent)
     {
         $type = get_class($object);
+
+        if (isset($this->serializers[$type])) {
+            return $this->_serialize(call_user_func($this->serializers[$type], $object), $indent);
+        }
 
         $whitespace = $this->newline . str_repeat($this->indentation, $indent + 1);
 
@@ -286,6 +334,10 @@ class JsonSerializer
     {
         $type = $data[self::TYPE];
 
+        if (isset($this->unserializers[$type])) {
+            return $this->_unserialize(call_user_func($this->unserializers[$type], $data));
+        }
+
         if ($type === self::STD_CLASS) {
             unset($data[self::TYPE]);
             return (object) $this->_unserializeArray($data);
@@ -355,5 +407,46 @@ class JsonSerializer
         }
 
         return self::$_reflections[$type];
+    }
+
+    /**
+     * @param DateTime $datetime
+     *
+     * @return array
+     */
+    protected function _serializeDateTime($datetime)
+    {
+        $ts = $datetime->getTimestamp();
+
+        $utc = date_create_from_format("U", $ts, timezone_open("UTC"));
+        
+        return array(
+            self::TYPE => get_class($datetime),
+            "datetime" => $utc->format(self::DATETIME_FORMAT),
+            "timezone" => $datetime->getTimezone()->getName(),
+        );
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return DateTime|DateTimeImmutable
+     */
+    protected function _unserializeDateTime($data)
+    {
+        $datetime = date_create_from_format(self::DATETIME_FORMAT, $data["datetime"], timezone_open("UTC"));
+
+        $datetime->setTimezone(timezone_open($data["timezone"]));
+
+        switch ($data[self::TYPE]) {
+            case "DateTime":
+                return $datetime;
+            
+            case "DateTimeImmutable":
+                return DateTimeImmutable::createFromMutable($datetime);
+            
+            default:
+                throw new RuntimeException("unsupported type: " . $data[self::TYPE]);
+        }
     }
 }
