@@ -38,7 +38,7 @@ class OrderLine
 {
     /**
      * @param string $item
-     * @param int $amount
+     * @param int    $amount
      */
     public function __construct($item, $amount)
     {
@@ -47,10 +47,14 @@ class OrderLine
         $this->data = 456;
     }
 
-    /** @var array this is here to assert omission of static properties */
+    /**
+     * @var array this is here to assert omission of static properties
+     */
     public static $cache = array();
 
-    /** @var int this is here to assert omission or inclusion of private properties */
+    /**
+     * @var int this is here to assert omission or inclusion of private properties
+     */
     private $data = 123;
 
     public $item;
@@ -65,7 +69,8 @@ header('Content-type: text/plain');
 /**
  * @return Order
  */
-function get_order_fixture() {
+function get_order_fixture()
+{
     $order = new Order;
     $order->orderNo = 123;
     $order->setPaid();
@@ -102,7 +107,7 @@ test(
 
         $serial = json_decode($data, true);
 
-        ok(!isset($serial['lines'][0]['cache']), 'static properties should always be omitted');
+        ok(! isset($serial['lines'][0]['cache']), 'static properties should always be omitted');
 
         eq($serial['lines'][0]['data'], 456, 'private properties should be included by default');
 
@@ -117,7 +122,7 @@ test(
 
         $serial = json_decode($data, true);
 
-        ok(!isset($serial['lines'][0]['data']), 'private properties should be omitted after skipPrivateProperties()');
+        ok(! isset($serial['lines'][0]['data']), 'private properties should be omitted after skipPrivateProperties()');
 
         eq($prop->getValue($output->lines[0]), 123, 'private properties should initialize to their default value');
     }
@@ -151,15 +156,15 @@ test(
 test(
     'Can unserialize legacy array/hash values',
     function () {
-        $array = array('foo','bar','baz');
+        $array = array('foo', 'bar', 'baz');
 
         $input = array(
             'array' => $array,
-            'hash' => array(
+            'hash'  => array(
                 JsonSerializer::TYPE => JsonSerializer::HASH,
-                'foo' => 1,
-                'bar' => 2,
-                'baz' => 3,
+                'foo'                => 1,
+                'bar'                => 2,
+                'baz'                => 3,
             ),
         );
 
@@ -169,7 +174,7 @@ test(
 
         eq($output['array'], $array, 'correctly unserializes a straight array');
 
-        ok(!isset($output['hash'][JsonSerializer::TYPE]), 'legacy hash tag detected and removed');
+        ok(! isset($output['hash'][JsonSerializer::TYPE]), 'legacy hash tag detected and removed');
 
         eq(
             $output['hash'],
@@ -212,7 +217,8 @@ function ok($result, $why = null, $value = null)
     if ($result === true) {
         echo "- PASS: " . ($why === null ? 'OK' : $why) . ($value === null ? '' : ' (' . format($value) . ')') . "\n";
     } else {
-        echo "# FAIL: " . ($why === null ? 'ERROR' : $why) . ($value === null ? '' : ' - ' . format($value, true)) . "\n";
+        echo "# FAIL: " . ($why === null ? 'ERROR' : $why) . ($value === null ? '' : ' - ' . format($value,
+                    true)) . "\n";
         status(false);
     }
 }
@@ -277,7 +283,7 @@ function format($value, $verbose = false)
         return $value ? 'TRUE' : 'FALSE';
     }
 
-    if (is_object($value) && !$verbose) {
+    if (is_object($value) && ! $verbose) {
         return get_class($value);
     }
 

@@ -4,25 +4,15 @@ namespace mindplay\jsonfreeze;
 
 use ReflectionClass;
 use ReflectionProperty;
-use RuntimeException;
 use stdClass;
-
-/**
- * @author Rasmus Schultz <rasmus@mindplay.dk>
- * @license LGPL v3 <http://www.gnu.org/licenses/gpl-3.0.txt>
- *
- * This class can serialize a complete PHP object-graph to a JSON string, and
- * can unserialize the string back to the equivalent PHP object-graph.
- *
- * See here for detailed notes on the precise requirements met by this class:
- *
- *   http://stackoverflow.com/questions/10489876
- *
- */
 
 /**
  * This class can serialize/unserialize a complete PHP object graph to a
  * JSON string representation, using human-readable, VCS-friendly formatting.
+ *
+ * See here for detailed notes on the precise requirements met by this class:
+ *
+ *   http://stackoverflow.com/questions/10489876
  */
 class JsonSerializer
 {
@@ -67,7 +57,7 @@ class JsonSerializer
      * @see skipPrivateProperties()
      * @see _getClassProperties()
      */
-    private $_skip_private = false;
+    private $skip_private = false;
 
     /**
      * @param bool $pretty true to enable "pretty" JSON formatting.
@@ -117,8 +107,8 @@ class JsonSerializer
      */
     public function skipPrivateProperties($skip = true)
     {
-        if ($this->_skip_private !== $skip) {
-            $this->_skip_private = $skip;
+        if ($this->skip_private !== $skip) {
+            $this->skip_private = $skip;
 
             self::$_reflections = array();
         }
@@ -127,8 +117,8 @@ class JsonSerializer
     /**
      * Serializes an individual object/array/hash/value, returning a JSON string representation
      *
-     * @param mixed $value the value to serialize
-     * @param int $indent indentation level
+     * @param mixed $value  the value to serialize
+     * @param int   $indent indentation level
      *
      * @return string JSON serialized value
      */
@@ -161,7 +151,7 @@ class JsonSerializer
      * Serializes a complete object with aggregates, returning a JSON string representation.
      *
      * @param object $object object
-     * @param int $indent indentation level
+     * @param int    $indent indentation level
      *
      * @return string JSON object representation
      */
@@ -190,8 +180,8 @@ class JsonSerializer
     /**
      * Serializes a "strict" array (base-0 integer keys) returning a JSON string representation.
      *
-     * @param array $array array
-     * @param int $indent indentation level
+     * @param array $array  array
+     * @param int   $indent indentation level
      *
      * @return string JSON array representation
      */
@@ -213,8 +203,8 @@ class JsonSerializer
     /**
      * Serializes a "wild" array (e.g. a "hash" array with mixed keys) returning a JSON string representation.
      *
-     * @param array $hash hash array
-     * @param int $indent indentation level
+     * @param array $hash   hash array
+     * @param int   $indent indentation level
      *
      * @return string JSON hash representation
      */
@@ -245,8 +235,8 @@ class JsonSerializer
     /**
      * Serializes a stdClass object returning a JSON string representation.
      *
-     * @param stdClass $value stdClass object
-     * @param int $indent indentation level
+     * @param stdClass $value  stdClass object
+     * @param int      $indent indentation level
      *
      * @return string JSON object representation
      */
@@ -268,7 +258,7 @@ class JsonSerializer
      */
     protected function _unserialize($data)
     {
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             return $data; // scalar value is fully unserialized
         }
 
@@ -342,7 +332,7 @@ class JsonSerializer
      */
     protected function _getClassProperties($type)
     {
-        if (!isset(self::$_reflections[$type])) {
+        if (! isset(self::$_reflections[$type])) {
             $class = new ReflectionClass($type);
 
             $props = array();
@@ -352,7 +342,7 @@ class JsonSerializer
                     continue; // omit static property
                 }
 
-                if ($this->_skip_private && $prop->isPrivate()) {
+                if ($this->skip_private && $prop->isPrivate()) {
                     continue; // skip private property
                 }
 
