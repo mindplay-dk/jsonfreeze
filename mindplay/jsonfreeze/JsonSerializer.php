@@ -410,15 +410,13 @@ class JsonSerializer
     }
 
     /**
-     * @param DateTime $datetime
+     * @param DateTime|DateTimeImmutable $datetime
      *
      * @return array
      */
     protected function _serializeDateTime($datetime)
     {
-        $ts = $datetime->getTimestamp();
-
-        $utc = date_create_from_format("U", $ts, timezone_open("UTC"));
+        $utc = date_create_from_format("U", $datetime->format("U"), timezone_open("UTC"));
         
         return array(
             self::TYPE => get_class($datetime),
