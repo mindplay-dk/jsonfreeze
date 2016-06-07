@@ -434,17 +434,19 @@ class JsonSerializer
      */
     protected function _unserializeDateTime($data)
     {
-        $datetime = date_create_from_format(self::DATETIME_FORMAT, $data["datetime"], timezone_open("UTC"));
-
-        $datetime->setTimezone(timezone_open($data["timezone"]));
-
         switch ($data[self::TYPE]) {
             case "DateTime":
+                $datetime = DateTime::createFromFormat(self::DATETIME_FORMAT, $data["datetime"], timezone_open("UTC"));
+
+                $datetime->setTimezone(timezone_open($data["timezone"]));
+
                 return $datetime;
             
             case "DateTimeImmutable":
-                return DateTimeImmutable::createFromMutable($datetime);
-            
+                $datetime = DateTimeImmutable::createFromFormat(self::DATETIME_FORMAT, $data["datetime"], timezone_open("UTC"));
+
+                return $datetime->setTimezone(timezone_open($data["timezone"]));
+
             default:
                 throw new RuntimeException("unsupported type: " . $data[self::TYPE]);
         }
