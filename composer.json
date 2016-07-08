@@ -16,8 +16,8 @@
         "mindplay/testies": "dev-master"
     },
     "autoload": {
-        "psr-0": {
-            "mindplay\\jsonfreeze": ""
+        "psr-4": {
+            "mindplay\\jsonfreeze\\": "src/"
         }
     }
 }
