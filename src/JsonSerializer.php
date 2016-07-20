@@ -180,13 +180,11 @@ class JsonSerializer
                 return $this->_serializeHash($value, $indent);
             }
         } elseif (is_string($value)) {
-            $data = json_encode($value);
-
-            if ($data === false) {
-                throw new RuntimeException(json_last_error_msg());
+            if (preg_match('//u', $value) !== 1) {
+                throw new RuntimeException("Malformed UTF-8 characters, possibly incorrectly encoded");
             }
 
-            return $data;
+            return json_encode($value);
         } elseif (is_scalar($value)) {
             return json_encode($value);
         } else {
