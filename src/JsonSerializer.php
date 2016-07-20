@@ -4,7 +4,6 @@ namespace mindplay\jsonfreeze;
 
 use DateTime;
 use DateTimeImmutable;
-use DateTimeZone;
 use ReflectionClass;
 use ReflectionProperty;
 use RuntimeException;
