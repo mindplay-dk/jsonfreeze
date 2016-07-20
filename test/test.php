@@ -162,4 +162,22 @@ test(
     }
 );
 
+test(
+    'Throws for invalid UTF-8 strings',
+    function () {
+        $serializer = new JsonSerializer(false);
+
+        $invalid_string = "\xc3\x28"; // invalid 2 Octet Sequence
+
+        expect(
+            'RuntimeException',
+            'should throw for invalid UTF-8 strings',
+            function () use ($serializer, $invalid_string) {
+                $serializer->serialize($invalid_string);
+            },
+            '#' . preg_quote('Malformed UTF-8 characters, possibly incorrectly encoded') . '#'
+        );
+    }
+);
+
 exit(run());

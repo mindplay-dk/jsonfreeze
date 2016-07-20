@@ -174,20 +174,24 @@ class JsonSerializer
             }
 
             return $this->_serializeObject($value, $indent);
-        } else {
-            if (is_array($value)) {
-                if (array_keys($value) === array_keys(array_values($value))) {
-                    return $this->_serializeArray($value, $indent);
-                } else {
-                    return $this->_serializeHash($value, $indent);
-                }
+        } elseif (is_array($value)) {
+            if (array_keys($value) === array_keys(array_values($value))) {
+                return $this->_serializeArray($value, $indent);
             } else {
-                if (is_scalar($value)) {
-                    return json_encode($value);
-                } else {
-                    return 'null';
-                }
+                return $this->_serializeHash($value, $indent);
             }
+        } elseif (is_string($value)) {
+            $data = json_encode($value);
+
+            if ($data === false) {
+                throw new RuntimeException(json_last_error_msg());
+            }
+
+            return $data;
+        } elseif (is_scalar($value)) {
+            return json_encode($value);
+        } else {
+            return 'null';
         }
     }
 
