@@ -268,7 +268,7 @@ class JsonSerializer
         foreach ($hash as $key => $item) {
             $string .= $comma
                 . $whitespace
-                . json_encode($key)
+                . json_encode((string) $key)
                 . ':'
                 . $this->padding
                 . $this->_serialize($item, $indent + 1);

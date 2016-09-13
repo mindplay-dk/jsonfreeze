@@ -108,6 +108,27 @@ test(
     }
 );
 
+test(
+    'can un/serialize arrays with mixed key-types',
+    function () {
+        $input = array('a', 'b' => 'b ');
+
+        $serializer = new JsonSerializer();
+
+        $json = $serializer->serialize($input);
+
+        $unserialized = $serializer->unserialize($json);
+
+        eq($unserialized, $input);
+
+        $keys = array_keys($unserialized);
+
+        eq(gettype($keys[0]), 'integer');
+
+        eq(gettype($keys[1]), 'string');
+    }
+);
+
 /**
  * @param DateTime|DateTimeImmutable $value
  * @param DateTime|DateTimeImmutable $expected
