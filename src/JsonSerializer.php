@@ -390,19 +390,25 @@ class JsonSerializer
 
             $props = array();
 
-            foreach ($class->getProperties() as $prop) {
-                if ($prop->isStatic()) {
-                    continue; // omit static property
+            do {
+                foreach ($class->getProperties() as $prop) {
+                    if ($prop->isStatic()) {
+                        continue; // omit static property
+                    }
+
+                    if ($this->skip_private && $prop->isPrivate()) {
+                        continue; // skip private property
+                    }
+
+                    $prop->setAccessible(true);
+
+                    $name = ($prop->isPrivate() && $prop->class !== $type)
+                        ? "{$prop->class}#" . $prop->getName()
+                        : $prop->getName();
+
+                    $props[$name] = $prop;
                 }
-
-                if ($this->skip_private && $prop->isPrivate()) {
-                    continue; // skip private property
-                }
-
-                $prop->setAccessible(true);
-
-                $props[$prop->getName()] = $prop;
-            }
+            } while ($class = $class->getParentClass());
 
             self::$_reflections[$type] = $props;
         }

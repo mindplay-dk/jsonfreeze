@@ -65,11 +65,38 @@ class OrderLine
     public static $cache = array();
 
     /**
-     * @var int this is here to assert omission or inclusion of private properties
+     * @var int this is here to assert omission/inclusion/inheritance of private properties
      */
     private $data = 123;
 
     public $item;
     public $amount;
     public $options = array();
+
+    public function setData($data)
+    {
+        $this->data = $data;
+    }
+
+    public function getData()
+    {
+        return $this->data;
+    }
+}
+
+class OrderLineEx extends OrderLine
+{
+    public $color;
+
+    private $data;
+
+    public function setDataEx($data)
+    {
+        $this->data = $data;
+    }
+
+    public function getDataEx()
+    {
+        return $this->data;
+    }
 }
