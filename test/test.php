@@ -7,6 +7,34 @@ require __DIR__ . '/fixtures.php';
 use mindplay\jsonfreeze\JsonSerializer;
 
 test(
+    'Can serialize inherited properties',
+    function () {
+        $input = new OrderLineEx("shoe", 2);
+        $input->color = "blue";
+        $input->setData("one");
+        $input->setDataEx("two");
+
+        $serializer = new JsonSerializer(false);
+
+        /** @var OrderLineEx $output */
+
+        $json = $serializer->serialize($input);
+
+        eq($json, '{"#type":"OrderLineEx","color":"blue","data":"two","item":"shoe","amount":2,"options":[],"OrderLine#data":"one"}');
+        //                                               ^^^^^^^^^^^^ own private                           ^^^^^^^^^^^^^^^^^^^^^^ inherited private
+        $output = $serializer->unserialize($json);
+
+        eq($output->item, "shoe");
+        eq($output->color, "blue");
+        eq($output->amount, 2);
+        eq($output->getData(), "one");
+        eq($output->getDataEx(), "two");
+    }
+);
+
+exit(run());
+
+test(
     'Can serialize and unserialize object graph',
     function () {
         $input = get_order_fixture();
