@@ -78,6 +78,11 @@ class JsonSerializer
     private $unserializers = array();
 
     /**
+     * @var array
+     */
+    private $classAlias = array();
+
+    /**
      * @param bool $pretty true to enable "pretty" JSON formatting.
      */
     public function __construct($pretty = true)
@@ -145,6 +150,18 @@ class JsonSerializer
     }
 
     /**
+     * Add a class alias which will be used as #type during serialization and
+     * the this map will be used for unserialization to determine the correct class
+     *
+     * @param string $className
+     * @param string $alias
+     */
+    public function addClassAlias($className, $alias)
+    {
+        $this->classAlias[$className] = $alias;
+    }
+
+    /**
      * Registers a pair of custom un/serialization functions for a given class
      *
      * @param string   $type        fully-qualified class-name
@@ -208,9 +225,14 @@ class JsonSerializer
             return $this->_serialize(call_user_func($this->serializers[$type], $object), $indent);
         }
 
+        $alias = null;
+        if (isset($this->classAlias[$type])) {
+            $alias = $this->classAlias[$type];
+        }
+
         $whitespace = $this->newline . str_repeat($this->indentation, $indent + 1);
 
-        $string = '{' . $whitespace . '"' . self::TYPE . '":' . $this->padding . json_encode($type);
+        $string = '{' . $whitespace . '"' . self::TYPE . '":' . $this->padding . json_encode($alias ?: $type);
 
         foreach ($this->_getClassProperties($type) as $name => $prop) {
             $string .= ','
@@ -337,6 +359,10 @@ class JsonSerializer
 
         if (isset($this->unserializers[$type])) {
             return $this->_unserialize(call_user_func($this->unserializers[$type], $data));
+        }
+
+        if (in_array($type, $this->classAlias)) {
+            $type = array_search($type, $this->classAlias);
         }
 
         if ($type === self::STD_CLASS) {
