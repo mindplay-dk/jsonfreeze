@@ -32,8 +32,6 @@ test(
     }
 );
 
-exit(run());
-
 test(
     'Can serialize and unserialize object graph',
     function () {
@@ -226,6 +224,35 @@ test(
             },
             '#' . preg_quote('Malformed UTF-8 characters, possibly incorrectly encoded') . '#'
         );
+    }
+);
+
+test(
+    'can un/serialize objects with custom alias',
+    function () {
+        $input = new OrderLineEx("shoe", 2);
+        $input->color = "blue";
+        $input->setData("one");
+        $input->setDataEx("two");
+
+        $serializer = new JsonSerializer(false);
+
+        $serializer->addClassAlias('OrderLineEx', 'order_line_ex');
+
+        /** @var OrderLineEx $output */
+
+        $json = $serializer->serialize($input);
+
+        eq($json, '{"#type":"order_line_ex","color":"blue","data":"two","item":"shoe","amount":2,"options":[],"OrderLine#data":"one"}');
+
+        $output = $serializer->unserialize($json);
+
+        eq(get_class($output), "OrderLineEx");
+        eq($output->item, "shoe");
+        eq($output->color, "blue");
+        eq($output->amount, 2);
+        eq($output->getData(), "one");
+        eq($output->getDataEx(), "two");
     }
 );
 
